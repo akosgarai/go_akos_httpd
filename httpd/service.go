@@ -24,21 +24,27 @@ type Store interface {
 	Delete(key string) error
 }
 
+type Htmlpage interface {
+	Getpage() string
+}
+
 // Service provides HTTP service.
 type Service struct {
 	addr   string
 	ln     net.Listener
 	logger *log.Logger
 
-	store Store
+	store    Store
+	htmlpage Htmlpage
 }
 
 // New returns an uninitialized HTTP service.
-func New(addr string, store Store) *Service {
+func New(addr string, store Store, htmlpage Htmlpage) *Service {
 	return &Service{
-		addr:   addr,
-		store:  store,
-		logger: log.New(os.Stderr, "[http] ", log.LstdFlags),
+		addr:     addr,
+		store:    store,
+		htmlpage: htmlpage,
+		logger:   log.New(os.Stderr, "[http] ", log.LstdFlags),
 	}
 }
 
@@ -94,8 +100,9 @@ func (s *Service) handleKeyRequest(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		k := getKey()
-		if k == "" {
-			w.WriteHeader(http.StatusBadRequest)
+		if k == "page" {
+			io.WriteString(w, string(s.htmlpage.Getpage()))
+			return
 		}
 		v, err := s.store.Get(k)
 		if err != nil {

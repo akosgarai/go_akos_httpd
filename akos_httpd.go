@@ -8,19 +8,24 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/akosgarai/go_akos_httpd/htmlcontent"
+	"github.com/akosgarai/go_akos_httpd/htmlcontentservice"
 	"github.com/akosgarai/go_akos_httpd/httpd"
 	"github.com/akosgarai/go_akos_httpd/store"
 )
 
 // DefaultHTTPAddr is the default HTTP bind address.
 const DefaultHTTPAddr = ":8080"
+const DefaultHTTPAddrForHtmlContent = ":8081"
 
 // Parameters
 var httpAddr string
+var httpContentAddr string
 
 // init initializes this package.
 func init() {
 	flag.StringVar(&httpAddr, "addr", DefaultHTTPAddr, "Set the HTTP bind address")
+	flag.StringVar(&httpContentAddr, "contentaddr", DefaultHTTPAddrForHtmlContent, "Set the HTTP bind address content")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options]\n", os.Args[0])
 		flag.PrintDefaults()
@@ -36,8 +41,15 @@ func main() {
 		log.Fatalf("failed to open store: %s", err.Error())
 	}
 
-	h := httpd.New(httpAddr, s)
+	c := htmlcontent.New()
+
+	h := httpd.New(httpAddr, s, c)
 	if err := h.Start(); err != nil {
+		log.Fatalf("failed to start HTTP service: %s", err.Error())
+	}
+
+	hc := htmlcontentservice.New(httpContentAddr, c)
+	if err := hc.Start(); err != nil {
 		log.Fatalf("failed to start HTTP service: %s", err.Error())
 	}
 
